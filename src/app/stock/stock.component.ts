@@ -1,53 +1,76 @@
-import {Component} from '@angular/core';
-import {StockService} from '../services/stock.service';
-import {MatDialog} from '@angular/material/dialog';
+import {Component, OnInit} from '@angular/core';
+import {ModalDismissReasons, NgbModal} from '@ng-bootstrap/ng-bootstrap';
+import {Stock} from '../shared/Model/Stock';
+import {StockService} from '../shared/Service/Stock.service';
 
 @Component({
   selector: 'app-stock',
   templateUrl: './stock.component.html',
   styleUrls: ['./stock.component.css']
 })
-export class StockComponent {
+export class StockComponent implements OnInit {
 
-  data: any;
-  displayForm = false;
-  stock: any
-  formData = {
-    title: ''
-  };
+  listStocks: any;
+  form: boolean = false;
+  stock!: Stock;
+  closeResult!: string;
 
-  constructor(private stockService: StockService, private dialog: MatDialog) {
+  constructor(private stockService: StockService, private modalService: NgbModal) {
   }
 
-  ngOnInit() {
-    this.fetchData();
+  ngOnInit(): void {
+    this.getAllStockss();
+
     this.stock = {
       idStock: null,
-      title: null
+      libelleStock:null,
+      qte:null,
+      qteMin:null
     }
   }
 
-  fetchData() {
-    this.stockService.fetchAllData().subscribe((response) => {
-      this.data = response;
+  getAllStockss() {
+    this.stockService.getAllStocks().subscribe(res => this.listStocks = res)
+  }
+
+  addStock(p: any) {
+    this.stockService.addStock(p).subscribe(() => {
+      this.getAllStockss();
+      this.form = false;
     });
   }
 
-  showForm() {
-    this.displayForm = true;
+  editStock(stock: Stock) {
+    this.stockService.editStock(stock).subscribe();
   }
 
-  submitForm() {
-   // Hide the form after submission
-    this.displayForm = false;
+  deleteStock(idStock: any) {
+    this.stockService.deleteStock(idStock).subscribe(() => this.getAllStockss())
   }
 
-  addStock(stock: any) {
-    return this.stockService.addStock(stock).subscribe((response) => {
-      this.data = response;
-      this.displayForm = false;
-      this.fetchData();
+  open(content: any, action: any) {
+    if (action != null)
+      this.stock = action
+    else
+      this.stock = new Stock();
+    this.modalService.open(content, {ariaLabelledBy: 'modal-basic-title'}).result.then((result) => {
+      this.closeResult = `Closed with: ${result}`;
+    }, (reason) => {
+      this.closeResult = `Dismissed ${this.getDismissReason(reason)}`;
     });
   }
 
+  private getDismissReason(reason: any): string {
+    if (reason === ModalDismissReasons.ESC) {
+      return 'by pressing ESC';
+    } else if (reason === ModalDismissReasons.BACKDROP_CLICK) {
+      return 'by clicking on a backdrop';
+    } else {
+      return `with: ${reason}`;
+    }
+  }
+
+  cancel() {
+    this.form = false;
+  }
 }
